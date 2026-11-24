@@ -12,7 +12,8 @@
 
 ## 原始来源
 
-`~/Desktop/note/实践课作业/10. Ensemble ; ~/Desktop/作业/10. Ensemble`
+- `~/Desktop/作业/10. Ensemble` — **第二次做的（以这份为准）**，含 `analysis/` 和 CTG 作业报告
+- `~/Desktop/note/实践课作业/10. Ensemble` — 第一次做的，含 `作业提交/`、`作业提交_修订版/`，作为历史版本参考
 
 ## 运行
 

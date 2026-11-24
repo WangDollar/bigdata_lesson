@@ -15,7 +15,7 @@
 | 9 | SVM 与 Margin | [`lessons/09-svm-margin`](lessons/09-svm-margin) | 🚧 待导入 |
 | 10 | 集成学习与 Bootstrapping | [`lessons/10-ensemble-bootstrap`](lessons/10-ensemble-bootstrap) | 🚧 待导入 |
 
-> 讲次编号按实际上课用的（和材料 README 一致），比 plan.docx 里的大纲编号大 1。
+> 讲次编号按实际上课顺序（老师少上了一节，和 plan.docx 大纲编号不完全对应）。
 
 ## 每讲目录结构
 
