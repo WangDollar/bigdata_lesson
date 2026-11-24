@@ -1,0 +1,9 @@
+site,disease,total_n,observed_n,missing_n
+Cleveland,0,164,164,0
+Cleveland,1,139,139,0
+Hungary,0,188,187,1
+Hungary,1,106,106,0
+Switzerland,0,8,8,0
+Switzerland,1,115,114,1
+VA Long Beach,0,51,32,19
+VA Long Beach,1,149,115,34

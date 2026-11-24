@@ -1,0 +1,312 @@
+{
+  "source": "/Users/dollar/Desktop/note/l4/hypothesis/data/heart-disease-hypothesis.csv",
+  "sha256": "1ed78749c19deeb14d9498794d2d0e43ef0bdbea8837083c52ac5aedbb3a7298",
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "scipy": "1.18.1",
+    "statsmodels": "0.15.0",
+    "matplotlib": "3.11.2"
+  },
+  "total_n": 920,
+  "included_n": 865,
+  "excluded_n": 55,
+  "duplicate_record_ids": 0,
+  "duplicate_selected_profiles_beyond_first": 4,
+  "duplicate_profile_groups": [
+    [
+      "Hungary-102",
+      "Hungary-103"
+    ],
+    [
+      "VA-Long-Beach-140",
+      "VA-Long-Beach-188"
+    ],
+    [
+      "VA-Long-Beach-028",
+      "VA-Long-Beach-180"
+    ],
+    [
+      "VA-Long-Beach-016",
+      "VA-Long-Beach-136"
+    ]
+  ],
+  "implausible_zeros": {
+    "chol_zero_by_site": {
+      "Switzerland": 123,
+      "VA Long Beach": 49
+    },
+    "trestbps_zero": 1
+  },
+  "tukey_outliers": {
+    "0": [
+      69.0,
+      80.0
+    ],
+    "1": [
+      60.0,
+      195.0
+    ]
+  },
+  "balance": {
+    "0": {
+      "age_mean": 50.20204603580563,
+      "male_percent": 63.68286445012787
+    },
+    "1": {
+      "age_mean": 55.5548523206751,
+      "male_percent": 89.45147679324894
+    }
+  },
+  "site_disease": {
+    "Cleveland": {
+      "n": 303,
+      "disease_percent": 45.87458745874587
+    },
+    "Hungary": {
+      "n": 293,
+      "disease_percent": 36.177474402730375
+    },
+    "Switzerland": {
+      "n": 122,
+      "disease_percent": 93.44262295081968
+    },
+    "VA Long Beach": {
+      "n": 147,
+      "disease_percent": 78.2312925170068
+    }
+  },
+  "group_summary": [
+    {
+      "disease": 0,
+      "total_n": 411,
+      "analysis_n": 391,
+      "missing_n": 20,
+      "missing_percent": 4.866180048661801,
+      "mean": 148.80051150895142,
+      "sd": 23.60869243969362,
+      "median": 151.0,
+      "q1": 134.5,
+      "q3": 167.5,
+      "minimum": 69.0,
+      "maximum": 202.0,
+      "skew": -0.5156233536336936
+    },
+    {
+      "disease": 1,
+      "total_n": 509,
+      "analysis_n": 474,
+      "missing_n": 35,
+      "missing_percent": 6.8762278978389,
+      "mean": 128.26160337552741,
+      "sd": 24.02419328433036,
+      "median": 128.0,
+      "q1": 112.0,
+      "q3": 145.0,
+      "minimum": 60.0,
+      "maximum": 195.0,
+      "skew": -0.06935117826779719
+    }
+  ],
+  "primary": {
+    "n1": 474,
+    "n0": 391,
+    "mean_difference": -20.538908133424002,
+    "se": 1.6257738771898214,
+    "t": -12.633311693337,
+    "df": 837.1762389406794,
+    "p": 1.3015822320426063e-33,
+    "ci_low": -23.729979821392057,
+    "ci_high": -17.347836445455947,
+    "cohen_d": -0.8616282262582983,
+    "hedges_g": -0.8608792014310671
+  },
+  "adjusted": {
+    "n": 865,
+    "formula": "thalach ~ disease + age + sex + C(site)",
+    "covariance": "HC3",
+    "interval_distribution": "t",
+    "df_resid": 858.0,
+    "coefficient": -12.171193845259895,
+    "se": 1.6987137446708962,
+    "ci_low": -15.505314872665567,
+    "ci_high": -8.837072817854223,
+    "p": 1.676269338700565e-12,
+    "r_squared": 0.34048053255307553,
+    "covariates": {
+      "C(site)[T.Hungary]": {
+        "coefficient": -17.495453139711394,
+        "p": 8.554091428597445e-24
+      },
+      "C(site)[T.Switzerland]": {
+        "coefficient": -21.121154913527924,
+        "p": 1.1775844027380048e-14
+      },
+      "C(site)[T.VA Long Beach]": {
+        "coefficient": -17.960945477697265,
+        "p": 7.692877968076898e-13
+      },
+      "age": {
+        "coefficient": -0.8962835183723563,
+        "p": 3.2280571793782244e-25
+      },
+      "sex": {
+        "coefficient": -1.9003688174443463,
+        "p": 0.2839545165721432
+      }
+    }
+  },
+  "mann_whitney": {
+    "U": 49781.0,
+    "p": 9.025959624080582e-32,
+    "method": "asymptotic, tie and continuity corrected",
+    "prob_disease_higher": 0.2686015517929792
+  },
+  "by_site": [
+    {
+      "site": "Cleveland",
+      "n1": 139,
+      "n0": 164,
+      "mean_difference": -19.11905597473242,
+      "se": 2.4330889096738737,
+      "t": -7.857935605524213,
+      "df": 272.2685188386424,
+      "p": 9.106165923728839e-14,
+      "ci_low": -23.90911502190803,
+      "ci_high": -14.328996927556808,
+      "cohen_d": -0.9181263397445941,
+      "hedges_g": -0.9158367478749069
+    },
+    {
+      "site": "Hungary",
+      "n1": 106,
+      "n0": 187,
+      "mean_difference": -16.24119665018665,
+      "se": 2.7274306970805386,
+      "t": -5.954760525197338,
+      "df": 214.1703443626472,
+      "p": 1.0552661787966742e-08,
+      "ci_low": -21.617241685047127,
+      "ci_high": -10.865151615326177,
+      "cohen_d": -0.7284691381476021,
+      "hedges_g": -0.7265900260113658
+    },
+    {
+      "site": "Switzerland",
+      "n1": 114,
+      "n0": 8,
+      "mean_difference": -16.125,
+      "se": 9.432228423161938,
+      "t": -1.70956419592248,
+      "df": 8.013027075073893,
+      "p": 0.12565745438743803,
+      "ci_low": -37.869604226182176,
+      "ci_high": 5.6196042261821795,
+      "cohen_d": -0.6256521195565583,
+      "hedges_g": -0.6217336302900246
+    },
+    {
+      "site": "VA Long Beach",
+      "n1": 115,
+      "n0": 32,
+      "mean_difference": -2.737499999999997,
+      "se": 5.313320802798583,
+      "t": -0.5152145149146888,
+      "df": 40.17524934353885,
+      "p": 0.6092265751511914,
+      "ci_low": -13.474662924154376,
+      "ci_high": 7.999662924154382,
+      "cohen_d": -0.12422464746335743,
+      "hedges_g": -0.12358099644023122
+    }
+  ],
+  "missingness_by_site": [
+    {
+      "site": "Cleveland",
+      "total_n": 303,
+      "observed_n": 303,
+      "missing_n": 0,
+      "missing_percent": 0.0
+    },
+    {
+      "site": "Hungary",
+      "total_n": 294,
+      "observed_n": 293,
+      "missing_n": 1,
+      "missing_percent": 0.3401360544217687
+    },
+    {
+      "site": "Switzerland",
+      "total_n": 123,
+      "observed_n": 122,
+      "missing_n": 1,
+      "missing_percent": 0.8130081300813009
+    },
+    {
+      "site": "VA Long Beach",
+      "total_n": 200,
+      "observed_n": 147,
+      "missing_n": 53,
+      "missing_percent": 26.5
+    }
+  ],
+  "missing_profile": {
+    "observed": {
+      "n": 865,
+      "age_mean": 53.13526011560694,
+      "male_percent": 77.80346820809248,
+      "disease_percent": 54.79768786127167
+    },
+    "missing": {
+      "n": 55,
+      "age_mean": 59.41818181818182,
+      "male_percent": 96.36363636363636,
+      "disease_percent": 63.63636363636363
+    },
+    "va_observed": {
+      "n": 147,
+      "age_mean": 59.31292517006803,
+      "male_percent": 96.5986394557823,
+      "disease_percent": 78.2312925170068
+    },
+    "va_missing": {
+      "n": 53,
+      "age_mean": 59.45283018867924,
+      "male_percent": 98.11320754716981,
+      "disease_percent": 64.15094339622641
+    },
+    "trestbps_also_missing": 55,
+    "oldpeak_also_missing": 54
+  },
+  "exclude_va": {
+    "n1": 359,
+    "n0": 359,
+    "mean_difference": -20.724233983286922,
+    "se": 1.7520743418335343,
+    "t": -11.828398766229947,
+    "df": 705.3218968044931,
+    "p": 1.411982579447736e-29,
+    "ci_low": -24.164139450748593,
+    "ci_high": -17.28432851582525,
+    "cohen_d": -0.8828638427027189,
+    "hedges_g": -0.8819387321445253
+  },
+  "interaction": {
+    "formula": "thalach ~ disease * C(site) + age + sex",
+    "covariance": "HC3",
+    "F": 2.4685650745444825,
+    "df_num": 3,
+    "df_denom": 855.0,
+    "p": 0.06077434725917279
+  },
+  "power_examples": {
+    "planning_sd": 23.83732044459145,
+    "alpha": 0.05,
+    "power": 0.8,
+    "n_per_group_delta10": 91,
+    "n_per_group_delta5": 358,
+    "n_per_group_delta10_double_sd": 358
+  },
+  "independent_20_tests_fwer": 0.6415140775914581
+}
