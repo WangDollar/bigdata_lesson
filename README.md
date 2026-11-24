@@ -6,8 +6,8 @@
 
 | 讲 | 主题 | 目录 | 状态 |
 |---|---|---|---|
-| 2 | 变量类型与数据类型 | [`lessons/02-data-types`](lessons/02-data-types) | 🚧 待导入 |
-| 4 | 高维数据与降维（PCA / UMAP） | [`lessons/04-high-dimension-reduction`](lessons/04-high-dimension-reduction) | 🚧 待导入 |
+| 2 | 变量类型与数据类型 | [`lessons/02-data-types`](lessons/02-data-types) | ✅ 已导入 |
+| 4 | 高维数据与降维（PCA / UMAP） | [`lessons/04-high-dimension-reduction`](lessons/04-high-dimension-reduction) | ✅ 已导入 |
 | 5 | 统计检验与假设设计 | [`lessons/05-hypothesis-testing`](lessons/05-hypothesis-testing) | ✅ 已导入 |
 | 6 | 多重检验校正 | [`lessons/06-multiple-testing`](lessons/06-multiple-testing) | ✅ 已导入 |
 | 7 | 机器学习基础与朴素贝叶斯 | [`lessons/07-naive-bayes`](lessons/07-naive-bayes) | ✅ 已导入 |
