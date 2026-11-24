@@ -13,7 +13,7 @@
 | 7 | 机器学习基础与朴素贝叶斯 | [`lessons/07-naive-bayes`](lessons/07-naive-bayes) | 🚧 待导入 |
 | 8 | 线性模型、LDA 与 Logistic Regression | [`lessons/08-linear-models`](lessons/08-linear-models) | 🚧 待导入 |
 | 9 | SVM 与 Margin | [`lessons/09-svm-margin`](lessons/09-svm-margin) | 🚧 待导入 |
-| 10 | 集成学习与 Bootstrapping | [`lessons/10-ensemble-bootstrap`](lessons/10-ensemble-bootstrap) | 🚧 待导入 |
+| 10 | 集成学习与 Bootstrapping | [`lessons/10-ensemble-bootstrap`](lessons/10-ensemble-bootstrap) | ✅ 已导入 |
 
 > 讲次编号按实际上课顺序（老师少上了一节，和 plan.docx 大纲编号不完全对应）。
 
