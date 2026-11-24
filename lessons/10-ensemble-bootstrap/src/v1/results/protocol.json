@@ -1,0 +1,152 @@
+{
+ "train": {
+  "n": 1279,
+  "recordings": 209,
+  "pos": 108,
+  "pos_rate": 0.08444096950742767,
+  "seg_per_rec_median": 4.0,
+  "seg_per_rec_max": 26,
+  "rec_with_pos": 29,
+  "rec_mixed": 21,
+  "pos_per_pos_rec": [
+   16,
+   16,
+   8,
+   8,
+   6,
+   5,
+   4,
+   4,
+   3,
+   3,
+   3,
+   3,
+   3,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ]
+ },
+ "valid": {
+  "n": 424,
+  "recordings": 73,
+  "pos": 34,
+  "pos_rate": 0.08018867924528301,
+  "seg_per_rec_median": 4.0,
+  "seg_per_rec_max": 33,
+  "rec_with_pos": 12,
+  "rec_mixed": 8,
+  "pos_per_pos_rec": [
+   6,
+   5,
+   4,
+   4,
+   3,
+   3,
+   3,
+   2,
+   1,
+   1,
+   1,
+   1
+  ]
+ },
+ "dev": {
+  "n": 1703,
+  "recordings": 282,
+  "pos": 142,
+  "pos_rate": 0.08338226658837346,
+  "seg_per_rec_median": 4.0,
+  "seg_per_rec_max": 33,
+  "rec_with_pos": 41,
+  "rec_mixed": 29,
+  "pos_per_pos_rec": [
+   16,
+   16,
+   8,
+   8,
+   6,
+   6,
+   5,
+   5,
+   4,
+   4,
+   4,
+   4,
+   3,
+   3,
+   3,
+   3,
+   3,
+   3,
+   3,
+   3,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   2,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ]
+ },
+ "valid_all_normal_baseline": {
+  "accuracy": 0.9198113207547169,
+  "balanced_accuracy": 0.5
+ },
+ "nearest_neighbour_same_recording": {
+  "all": 0.6834997064004698,
+  "among_with_sibling": 0.6928571428571428,
+  "n_with_sibling": 1680
+ },
+ "nearest_neighbour_same_label": 0.9747504403992954,
+ "high_corr_pairs": [
+  [
+   "Width",
+   "Min",
+   -0.8984300642498142
+  ],
+  [
+   "Mode",
+   "Mean",
+   0.8965713454775216
+  ],
+  [
+   "Mode",
+   "Median",
+   0.9339765139783839
+  ],
+  [
+   "Mean",
+   "Median",
+   0.9402406519587645
+  ]
+ ]
+}

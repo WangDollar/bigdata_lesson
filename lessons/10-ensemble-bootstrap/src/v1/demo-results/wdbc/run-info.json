@@ -1,0 +1,8 @@
+{
+  "data": "wdbc",
+  "label": "malignant",
+  "group": null,
+  "seed": 1010,
+  "n_train": 341,
+  "n_validation": 114
+}
