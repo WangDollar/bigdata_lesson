@@ -1,0 +1,30 @@
+# Alma / 系统
+.alma-snapshots/
+.DS_Store
+~$*
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Node（build_slides.mjs）
+node_modules/
+
+# 打包和备份不入库，原件留在 ~/Desktop/note
+*.zip
+*.rar
+*.7z
+
+# 大数据文件：小数据集（< 10MB 的 csv）可以提交，大的写在 data/README.md 里说明来源
+*.npz
+*.h5
+*.parquet
+*.pkl
+**/data/raw/
+
+# 日志
+*.log

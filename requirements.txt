@@ -1,0 +1,10 @@
+# 全课程公共依赖；每讲额外的依赖写在各自目录的 requirements.txt
+numpy
+pandas
+scipy
+scikit-learn
+statsmodels
+matplotlib
+seaborn
+jupyter
+python-docx
