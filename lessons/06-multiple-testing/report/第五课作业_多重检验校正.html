@@ -1,0 +1,1043 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>第五课作业_多重检验校正</title><style>
+@page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+body { font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; font-size: 10.2pt;
+       line-height: 1.6; color: #1a1a1a; }
+h1 { font-size: 17pt; margin: 0 0 4pt; }
+h2 { font-size: 13pt; border-bottom: 1.5px solid #2a78d6; padding-bottom: 2pt; margin-top: 16pt; }
+h3 { font-size: 11pt; margin-top: 12pt; }
+p, li { text-align: justify; }
+table { border-collapse: collapse; width: 100%; margin: 6pt 0 8pt; font-size: 8.8pt; }
+th, td { border: 1px solid #c3c2b7; padding: 2.5pt 4pt; vertical-align: top; }
+th { background: #f1f0ea; }
+tr { break-inside: avoid; }
+img { display: block; max-width: 100%; margin: 6pt auto 2pt; break-inside: avoid; }
+code { font-family: Menlo, monospace; font-size: 8.6pt; background: #f4f4f1; padding: 0 2pt; }
+blockquote { color: #52514e; border-left: 3px solid #c3c2b7; margin: 6pt 0; padding: 0 8pt; }
+hr { border: 0; border-top: 1px solid #e1e0d9; margin: 10pt 0; }
+</style></head><body><h1>第五课作业｜7,129 个探针里，有多少差异是真的？</h1>
+<p><strong>——多重检验校正在 Golub 白血病表达数据上的应用</strong></p>
+<hr />
+<h2>0. 一页结论</h2>
+<p><strong>自选问题：</strong> 在 7,129 个探针中，AML 与 ALL 的表达差异&quot;大概有多少&quot;是真的？其中哪几个探针可以被可靠地点名，值得进一步验证？</p>
+<ol>
+<li><strong>数量。</strong> train 中有 1,694 个探针的原始 p≤0.05。即使 ALL/AML 之间完全没有差异，也会有一部分探针偶然显著：按检验相互独立估算平均约 356 个；把标签打乱 1,000 次后，偶然显著数最多为 1,466。实际的 1,694 超过了全部 1,000 次打乱结果。Storey 方法估计约 38% 的探针（λ 取 0.2–0.8 时为 2,200–2,900 个）存在非零均值差。不过置换检验显示这个估计受探针间相关性影响较大，因此我只把它当作数量级来用。</li>
+<li><strong>点名。</strong> 在 FDR 5% 下，BH 给出 535 个候选。我按事先写好的规则锁定其中 10 个，之后才打开留出样本：7 个在候选家族内 Bonferroni≤0.05，且方向与发现时一致。</li>
+<li><strong>边界。</strong> 这 7 个结果的含义是&quot;同一研究的留出样本中复现了探针水平的表达差异&quot;。它们不是致病基因，也不是外部队列验证。10 个候选中有 8 个在验证时效应变小，说明发现阶段的效应量偏乐观。</li>
+</ol>
+<p><img src="figures/fig1-funnel.png" alt="图 1　证据漏斗" /></p>
+<p><strong>图 1 解读：</strong> 这张图按顺序列出每一步保留的探针数，以及这一步能支持的主张。数量从 7,129 依次减少到 1,694、535、26、10、7，每一步的筛选标准都比上一步更严格。漏斗只表示证据逐级加强，不表示最后 7 个以外的探针没有差异：没被选中，不等于被证明无效应。</p>
+<hr />
+<h2>1. 数据与预先固定的分析协议</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据</td>
+<td>Golub 等 (1999) 白血病芯片数据，OpenML 1104 v1；72 个样本 × 7,129 个探针</td>
+</tr>
+<tr>
+<td>文件校验</td>
+<td><code>leukemia.csv</code> 的 SHA-256 为 <code>915bce00…45156f19</code>，脚本运行时自动核对</td>
+</tr>
+<tr>
+<td>发现部分 train</td>
+<td>ALL 27 / AML 11，用于全部筛选与候选锁定</td>
+</tr>
+<tr>
+<td>留出部分 test</td>
+<td>ALL 20 / AML 14，只在候选锁定后打开一次</td>
+</tr>
+<tr>
+<td>表达尺度</td>
+<td>原始芯片强度，28.7% 的值为负，未取对数</td>
+</tr>
+</tbody>
+</table>
+<p><strong>协议（在运行真实数据 C1 之前写定）：</strong></p>
+<ul>
+<li>研究问题：train 中 AML 与 ALL 的平均表达是否不同。</li>
+<li>单个探针的零假设：两组均值相等。每个探针做一次双侧 Welch t 检验，差值方向统一记为 AML−ALL。</li>
+<li>家族：train 中全部 7,129 个探针列，m=7,129。统一阈值为 0.05，同时报告 Bonferroni（控制 FWER）和 BH（控制 FDR）两种校正。</li>
+<li>候选：从 BH≤0.05 的探针中，按 raw p 升序取前 10 个；raw p 相同时按探针名排序。锁定名单写入 <code>output/locked-candidates.csv</code>。脚本以&quot;文件已存在就不覆盖、只比对&quot;的方式写入，重跑时不会改动名单。</li>
+<li>验证判据：在 test 中，10 个候选组成新的家族。要求候选家族内 Bonferroni≤0.05，并且差值方向与发现时一致。即使某个候选未通过，也不会换上新的候选。</li>
+</ul>
+<p><strong>家族要按&quot;实际有过的检验机会&quot;来定义，而不是按&quot;最后报告了多少&quot;。</strong> 下表是我对四种常见做法的判断：</p>
+<table>
+<thead>
+<tr>
+<th>分析行为</th>
+<th>实际的检验 / 选择机会</th>
+<th>应如何预先说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>比较 5 个临床指标</td>
+<td>5 次检验</td>
+<td>事先指定 1 个主要终点；其余作为次要终点，一并校正</td>
+</tr>
+<tr>
+<td>分析 4 个亚组</td>
+<td>至少 4 次（加上总体分析是 5 次）</td>
+<td>事先列出亚组，并报告全部亚组，包括不显著的</td>
+</tr>
+<tr>
+<td>试 3 个模型，只报告最显著的</td>
+<td>3 条分析路径，属于隐藏的多重性</td>
+<td>事先固定一个模型，或者把 3 个都报告出来</td>
+</tr>
+<tr>
+<td>看完 7,129 个 p 值后只报告前 20 个</td>
+<td>7,129 次，不是 20 次</td>
+<td>在完整家族上校正，见 4.2 节</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. 由定义推出的理论预期</h2>
+<p>下面这些结论直接从定义推出，用来和后面的实验结果对照：</p>
+<ul>
+<li><strong>全部为零效应时，原始显著数的期望。</strong> 设 m 个检验的零假设都成立，单项阈值为 α。每个 p 值落在 α 以下的概率都是 α。由期望的线性性，E[R]=m·α。<strong>这一步不需要假设检验相互独立。</strong> 独立性影响的是 R 的波动大小：只有在独立时，R 才服从二项分布，标准差为 √(mα(1−α))。
+<ul>
+<li>模拟实验 A（m=1,000）：预期 50 ± 6.9 个。</li>
+<li>真实数据（m=7,129）：如果检验独立，预期 356 ± 18.4 个。</li>
+</ul>
+</li>
+<li><strong>Bonferroni。</strong> 把阈值改为 α/m，由并集不等式可得 FWER≤α。这一结论同样不需要独立性。</li>
+<li><strong>BH。</strong> 在检验独立或正相关（PRDS）的条件下，FDR≤π0·α，其中 π0 是真零假设所占的比例。因此当 π0&lt;1 时，BH 实际上比名义水平更保守。例如在实验 B 中 π0=0.9，预期 FDR 约为 0.9×0.05=0.045。</li>
+</ul>
+<hr />
+<h2>3. 模拟实验：先在已知真相的数据上检查方法</h2>
+<p><strong>设计。</strong> 沿用课程 notebook 的模拟设置：</p>
+<ul>
+<li>每次生成 1,000 个相互独立的正态变量，两组样本量与 train 相同（AML 11、ALL 27），用等方差 t 检验。</li>
+<li>重复 1,000 次，种子固定为 42。</li>
+<li>实验 A：所有变量都没有差异。</li>
+<li>实验 B：前 100 个变量在 AML 组加上 δ 个标准差，δ 分别取 1.0 和 0.5；两种 δ 使用同一套随机噪声。</li>
+</ul>
+<p>这些模拟数据不是 Golub 的实测表达值，作用只是在&quot;知道哪些变量真的有差异&quot;的条件下检验方法本身。</p>
+<h3>3.1 实验 A：全部无差异</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align:right">第一次运行的 R</th>
+<th style="text-align:right">1,000 次平均 R</th>
+<th style="text-align:right">R 的标准差</th>
+<th>R 的 5%–95% 区间</th>
+<th style="text-align:right">FWER 估计（MCSE）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原始 p</td>
+<td style="text-align:right">42</td>
+<td style="text-align:right">49.944</td>
+<td style="text-align:right">6.76</td>
+<td>39–61</td>
+<td style="text-align:right">1.000</td>
+</tr>
+<tr>
+<td>Bonferroni</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.051</td>
+<td style="text-align:right">0.22</td>
+<td>0–1</td>
+<td style="text-align:right">0.051（0.007）</td>
+</tr>
+<tr>
+<td>BH</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">0.052</td>
+<td style="text-align:right">0.23</td>
+<td>0–1</td>
+<td style="text-align:right">0.051（0.007）</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/fig2-simA-all-null.png" alt="图 2　实验 A" /></p>
+<p><strong>图 2 解读：</strong> 左图是 1,000 次全零实验中原始显著数的分布，右图是三种方法&quot;至少出现 1 个假发现&quot;的比例。</p>
+<ul>
+<li>原始 p 的平均值是 49.9，标准差 6.76，与独立条件下的理论值 50 和 6.89 吻合。但单次实验可以低到 39 或高到 61：我第一次运行只得到 42 个，并不说明方法有问题。</li>
+<li>Bonferroni 和 BH 的 FWER 都是 0.051，减去和加上两倍 MCSE 后的区间约为 0.037–0.065，包含 0.05。</li>
+<li>这张图只覆盖&quot;检验相互独立&quot;的情形。真实探针之间相关时，波动会大得多，见第 5 节。</li>
+</ul>
+<p><strong>一个细节：</strong> 在全零情形下，每一次实验的 FDP 只可能是 0 或 1，所以 FDR 恰好等于 FWER（表中均为 0.051）。也就是说，BH 在全零时同样控制 FWER；一旦存在真信号，这一点就不再成立。</p>
+<h3>3.2 实验 B：100 个真信号 + 900 个零效应</h3>
+<table>
+<thead>
+<tr>
+<th>δ</th>
+<th>方法</th>
+<th style="text-align:right">平均 R</th>
+<th style="text-align:right">平均 V</th>
+<th style="text-align:right">FWER</th>
+<th style="text-align:right">FDR</th>
+<th style="text-align:right">平均检出力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>原始 p</td>
+<td style="text-align:right">122.5</td>
+<td style="text-align:right">44.8</td>
+<td style="text-align:right">1.000</td>
+<td style="text-align:right">0.364</td>
+<td style="text-align:right">0.777</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>Bonferroni</td>
+<td style="text-align:right">6.0</td>
+<td style="text-align:right">0.044</td>
+<td style="text-align:right">0.044</td>
+<td style="text-align:right">0.007</td>
+<td style="text-align:right">0.060</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>BH</td>
+<td style="text-align:right">30.1</td>
+<td style="text-align:right">1.445</td>
+<td style="text-align:right">0.754</td>
+<td style="text-align:right">0.046</td>
+<td style="text-align:right">0.286</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>原始 p</td>
+<td style="text-align:right">72.4</td>
+<td style="text-align:right">44.8</td>
+<td style="text-align:right">1.000</td>
+<td style="text-align:right">0.619</td>
+<td style="text-align:right">0.276</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>Bonferroni</td>
+<td style="text-align:right">0.27</td>
+<td style="text-align:right">0.044</td>
+<td style="text-align:right">0.044</td>
+<td style="text-align:right">0.039</td>
+<td style="text-align:right">0.002</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>BH</td>
+<td style="text-align:right">0.41</td>
+<td style="text-align:right">0.072</td>
+<td style="text-align:right">0.070</td>
+<td style="text-align:right">0.045</td>
+<td style="text-align:right">0.003</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/fig3-simB-signal.png" alt="图 3　实验 B" /></p>
+<p><strong>图 3 解读：</strong> 三个子图分别比较三种方法在两种信号强度下的检出力、FDR 和 FWER，虚线为 0.05。</p>
+<ul>
+<li>δ=1.0 时，BH 的检出力（0.286）约为 Bonferroni（0.060）的 5 倍，而 FDR 仍为 0.046。</li>
+<li>这张图不能说明哪种方法&quot;更好&quot;，因为两者控制的是不同的错误。</li>
+</ul>
+<p><strong>从这张表里我得到三点认识：</strong></p>
+<ol>
+<li><strong>FWER 0.754 和 FDR 0.046 并不矛盾。</strong> BH 允许出错，只保证错误平均只占发现的一小部分：平均每次约有 30 个发现，其中约 1.4 个是假的。因此&quot;至少错 1 个&quot;在 75% 的实验里都会发生，但错误比例的长期平均仍在 5% 以下。实测 FDR 0.046 和 0.045 也与第 2 节的预期 π0·α=0.045 吻合，说明 BH 因为隐含地假设 π0=1 而偏保守。这也是我在第 6 节尝试 Storey π0 的原因。</li>
+<li><strong>平均 V 除以平均 R 不等于 FDR。</strong> 以 δ=0.5 的 BH 为例：0.072/0.407=0.177，而真正的 FDR 是 0.045。原因有两个：FDR 是先在每次实验中计算 V/max(R,1)，再取平均；另外很多次实验 R=0，这些实验的 FDP 记为 0。直接用两个平均数相除，相当于给发现多的那几次实验更大的权重。</li>
+<li><strong>信号变弱后，&quot;没检出&quot;不能当作&quot;没效应&quot;。</strong> δ=0.5 时，两种校正方法的检出力只有 0.2%–0.3%。100 个真信号几乎都会被漏掉，但它们确实存在。</li>
+</ol>
+<p><strong>核对：</strong> 两种 δ 下原始 p 的平均 V 完全相同（都是 44.799，约等于 900×0.05），说明两种设置确实共用了同一套噪声。</p>
+<hr />
+<h2>4. 真实数据：证据逐步增加（C1–C4）</h2>
+<h3>4.1 C1：对全部 7,129 个探针做发现</h3>
+<p>家族大小 m=7,129，Bonferroni 对应的原始 p 阈值为 0.05/7,129≈7.01×10⁻⁶。BH 中满足条件的最大排序位置是 k=535：p₍₅₃₅₎=0.003747，不超过阈值 535×0.05/7,129=0.003752。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align:right">发现数</th>
+<th>这一步能支持的主张</th>
+<th>还不能说明的事</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>raw p≤0.05</td>
+<td style="text-align:right">1,694</td>
+<td>显著数远多于全零时预期的约 356 个，说明 AML/ALL 之间存在大量差异</td>
+<td>无法判断哪些是真的；按独立条件估计，可能有数百个是偶然</td>
+</tr>
+<tr>
+<td>BH≤0.05</td>
+<td style="text-align:right">535</td>
+<td>若重复这一流程，假发现所占比例的长期平均不超过 5%</td>
+<td>不保证这一批中每一个都是真的；不能说某个探针&quot;95% 为真&quot;</td>
+</tr>
+<tr>
+<td>Bonferroni≤0.05</td>
+<td style="text-align:right">26</td>
+<td>整个家族出现任何一个假发现的概率不超过 5%</td>
+<td>漏掉的探针很多（参考实验 B 中 0.06 的检出力）；也不说明效应的大小</td>
+</tr>
+</tbody>
+</table>
+<p><strong>补充观察：</strong></p>
+<ul>
+<li><strong>方向。</strong> BH 显著的 535 个探针中，AML 更高的有 98 个，AML 更低的有 437 个。</li>
+<li><strong>控制探针。</strong> 其中有 3 个是 AFFX 质控探针：AFFX-BioC-5_at、AFFX-CreX-5_st、AFFX-PheX-M_at，BH 值分别为 0.044、0.033、0.024。这些探针本来就不对应要研究的人类基因，它们出现在名单中提醒我：两组之间也可能存在技术或批次差异，统计显著不等于生物学差异。</li>
+</ul>
+<p><strong>一种方法&quot;算错了&quot;吗？</strong> 没有。三种方法用的是同一批原始 p 值，只是控制的错误不同，所以划出的线不同。真实数据中我们不知道哪些探针真的有差异，因此填不出 V 和真实检出力；这正是第 3 节要先用模拟数据检验方法的原因。</p>
+<p><img src="figures/fig4-pvalues-pi0.png" alt="图 4　p 值分布与 Storey π0" /></p>
+<p><strong>图 4 左解读：</strong> 这是 7,129 个原始 p 值的直方图，每格宽 0.05。</p>
+<ul>
+<li>最左一格有 1,694 个，远高于&quot;全部无差异&quot;时每格约 356 的水平（点线）。</li>
+<li>右侧的平坦部分每格约 222 个（虚线）。</li>
+<li>这个形状能说明&quot;有大量非零假设&quot;，但从直方图本身无法看出是哪些探针。右图在第 6 节讨论。</li>
+</ul>
+<h3>4.2 C2：先挑前 20 个再校正，为什么不可靠</h3>
+<p>以 raw p 最小的 U22376_cds2_s_at 为例：</p>
+<table>
+<thead>
+<tr>
+<th>探针</th>
+<th style="text-align:right">raw p</th>
+<th style="text-align:right">完整家族 Bonferroni</th>
+<th style="text-align:right">完整家族 BH</th>
+<th style="text-align:right">错误流程（只校正前 20）Bonferroni / BH</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U22376_cds2_s_at</td>
+<td style="text-align:right">8.39×10⁻⁹</td>
+<td style="text-align:right">5.98×10⁻⁵</td>
+<td style="text-align:right">5.98×10⁻⁵</td>
+<td style="text-align:right">1.68×10⁻⁷ / 1.68×10⁻⁷</td>
+</tr>
+</tbody>
+</table>
+<p>错误流程算出的校正 p 值比完整家族小 7,129/20≈356 倍。这次挑出的 20 个探针在两种流程下全部显著，所以发现的个数没有变化。变化的是这个数字背后的保证：</p>
+<ul>
+<li>这 20 个是在看过全部 7,129 个 p 值之后才挑出来的，实际的检验机会仍是 7,129 次。</li>
+<li>把家族缩小到 20，相当于假装另外 7,109 次检验没有做过，&quot;FWER≤5%&quot;的承诺因此不再成立。</li>
+<li>如果这 20 个探针是在看数据<strong>之前</strong>、依据文献或独立数据事先指定的，那么以 20 为家族是合理的。</li>
+</ul>
+<h3>4.3 C3：先看效应量，再锁定候选</h3>
+<p>锁定时间为 2026-10-21 09:51:38，文件为 <code>output/locked-candidates.csv</code>。10 个候选在 train 中的结果如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">#</th>
+<th>探针</th>
+<th style="text-align:right">均值差 AML−ALL</th>
+<th>逐项 95% CI</th>
+<th style="text-align:right">Cohen d</th>
+<th style="text-align:right">raw p</th>
+<th style="text-align:right">Bonferroni</th>
+<th style="text-align:right">BH</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td>U22376_cds2_s_at</td>
+<td style="text-align:right">−3,160.9</td>
+<td>[−3,977.8, −2,344.0]</td>
+<td style="text-align:right">−1.85</td>
+<td style="text-align:right">8.39×10⁻⁹</td>
+<td style="text-align:right">5.98×10⁻⁵</td>
+<td style="text-align:right">5.98×10⁻⁵</td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td>X59417_at</td>
+<td style="text-align:right">−3,223.2</td>
+<td>[−4,187.5, −2,258.9]</td>
+<td style="text-align:right">−1.64</td>
+<td style="text-align:right">9.82×10⁻⁸</td>
+<td style="text-align:right">7.00×10⁻⁴</td>
+<td style="text-align:right">3.50×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td>M55150_at</td>
+<td style="text-align:right">+1,026.0</td>
+<td>[759.1, 1,292.8]</td>
+<td style="text-align:right">2.98</td>
+<td style="text-align:right">2.47×10⁻⁷</td>
+<td style="text-align:right">1.76×10⁻³</td>
+<td style="text-align:right">4.64×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td>M31211_s_at</td>
+<td style="text-align:right">−398.8</td>
+<td>[−527.4, −270.3]</td>
+<td style="text-align:right">−1.59</td>
+<td style="text-align:right">2.92×10⁻⁷</td>
+<td style="text-align:right">2.08×10⁻³</td>
+<td style="text-align:right">4.64×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td>L13278_at</td>
+<td style="text-align:right">−127.4</td>
+<td>[−168.5, −86.2]</td>
+<td style="text-align:right">−1.57</td>
+<td style="text-align:right">3.25×10⁻⁷</td>
+<td style="text-align:right">2.32×10⁻³</td>
+<td style="text-align:right">4.64×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">6</td>
+<td>D26156_s_at</td>
+<td style="text-align:right">−727.2</td>
+<td>[−969.1, −485.3]</td>
+<td style="text-align:right">−1.59</td>
+<td style="text-align:right">5.18×10⁻⁷</td>
+<td style="text-align:right">3.70×10⁻³</td>
+<td style="text-align:right">6.16×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">7</td>
+<td>M92287_at</td>
+<td style="text-align:right">−2,955.8</td>
+<td>[−3,925.8, −1,985.9]</td>
+<td style="text-align:right">−1.47</td>
+<td style="text-align:right">6.83×10⁻⁷</td>
+<td style="text-align:right">4.87×10⁻³</td>
+<td style="text-align:right">6.61×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">8</td>
+<td>U09087_s_at</td>
+<td style="text-align:right">−134.0</td>
+<td>[−178.6, −89.4]</td>
+<td style="text-align:right">−1.47</td>
+<td style="text-align:right">7.41×10⁻⁷</td>
+<td style="text-align:right">5.28×10⁻³</td>
+<td style="text-align:right">6.61×10⁻⁴</td>
+</tr>
+<tr>
+<td style="text-align:right">9</td>
+<td>U05259_rna1_at</td>
+<td style="text-align:right">−3,274.7</td>
+<td>[−4,361.7, −2,187.8]</td>
+<td style="text-align:right">−1.41</td>
+<td style="text-align:right">1.31×10⁻⁶</td>
+<td style="text-align:right">9.37×10⁻³</td>
+<td style="text-align:right">1.03×10⁻³</td>
+</tr>
+<tr>
+<td style="text-align:right">10</td>
+<td>X74262_at</td>
+<td style="text-align:right">−1,161.2</td>
+<td>[−1,555.9, −766.6]</td>
+<td style="text-align:right">−1.40</td>
+<td style="text-align:right">1.49×10⁻⁶</td>
+<td style="text-align:right">1.06×10⁻²</td>
+<td style="text-align:right">1.03×10⁻³</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一个候选的完整证据记录：U22376_cds2_s_at</strong></p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>样本量</td>
+<td>AML 11 / ALL 27</td>
+</tr>
+<tr>
+<td>组均值</td>
+<td>AML 702.4，ALL 3,863.3</td>
+</tr>
+<tr>
+<td>均值差 AML−ALL</td>
+<td>−3,160.9，逐项 95% CI [−3,977.8, −2,344.0]</td>
+</tr>
+<tr>
+<td>Cohen d</td>
+<td>−1.85</td>
+</tr>
+<tr>
+<td>raw p</td>
+<td>8.39×10⁻⁹</td>
+</tr>
+<tr>
+<td>完整家族 Bonferroni / BH</td>
+<td>5.98×10⁻⁵ / 5.98×10⁻⁵</td>
+</tr>
+</tbody>
+</table>
+<p><strong>怎么读这些数：</strong></p>
+<ul>
+<li><strong>负号的含义。</strong> 负号表示在 train 中 AML 的平均强度低于 ALL。数值的单位是芯片原始强度，不是表达倍数：数据没有取对数，而且 28.7% 的值是负数，比值和 log 倍数在这里都没有定义。所以我只说&quot;AML 低约 3,161 个强度单位&quot;，不说&quot;低 5.5 倍&quot;。</li>
+<li><strong>p 值排序不等于效应排序。</strong> M55150_at 的 |d|=2.98 是 10 个候选中最大的，但它的 p 值只排第 3。</li>
+<li><strong>逐项 CI 的覆盖范围。</strong> 每个 95% CI 只针对它自己那个探针，既不覆盖整个家族，也没有对&quot;先按 p 值挑出来&quot;这一步做调整。被挑中的往往是&quot;恰好偏大&quot;的估计，4.4 节的验证结果印证了这一点。</li>
+</ul>
+<h3>4.4 C4：打开留出样本</h3>
+<p>验证家族为 10 个候选，判据是 Bonferroni≤0.05（等价于 raw p≤0.005），且方向与发现时一致。</p>
+<table>
+<thead>
+<tr>
+<th>探针</th>
+<th style="text-align:right">验证均值差</th>
+<th>逐项 95% CI</th>
+<th style="text-align:right">raw p</th>
+<th style="text-align:right">候选家族 Bonferroni</th>
+<th style="text-align:center">方向一致</th>
+<th style="text-align:center">通过</th>
+<th style="text-align:right">验证/发现比值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U22376_cds2_s_at</td>
+<td style="text-align:right">−1,766.7</td>
+<td>[−2,850.7, −682.7]</td>
+<td style="text-align:right">0.0023</td>
+<td style="text-align:right">0.023</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">0.56</td>
+</tr>
+<tr>
+<td>X59417_at</td>
+<td style="text-align:right">−2,887.3</td>
+<td>[−3,974.6, −1,800.0]</td>
+<td style="text-align:right">1.5×10⁻⁵</td>
+<td style="text-align:right">1.5×10⁻⁴</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">0.90</td>
+</tr>
+<tr>
+<td>M55150_at</td>
+<td style="text-align:right">+758.1</td>
+<td>[357.3, 1,159.0]</td>
+<td style="text-align:right">0.0009</td>
+<td style="text-align:right">0.009</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">0.74</td>
+</tr>
+<tr>
+<td>M31211_s_at</td>
+<td style="text-align:right">−292.3</td>
+<td>[−406.2, −178.5]</td>
+<td style="text-align:right">1.0×10⁻⁵</td>
+<td style="text-align:right">1.0×10⁻⁴</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">0.73</td>
+</tr>
+<tr>
+<td>L13278_at</td>
+<td style="text-align:right">−77.2</td>
+<td>[−135.1, −19.2]</td>
+<td style="text-align:right">0.011</td>
+<td style="text-align:right">0.107</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center">否</td>
+<td style="text-align:right">0.61</td>
+</tr>
+<tr>
+<td>D26156_s_at</td>
+<td style="text-align:right">−671.2</td>
+<td>[−1,071.8, −270.6]</td>
+<td style="text-align:right">0.0020</td>
+<td style="text-align:right">0.020</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">0.92</td>
+</tr>
+<tr>
+<td>M92287_at</td>
+<td style="text-align:right">−3,661.5</td>
+<td>[−4,916.4, −2,406.5]</td>
+<td style="text-align:right">5.4×10⁻⁶</td>
+<td style="text-align:right">5.4×10⁻⁵</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">1.24</td>
+</tr>
+<tr>
+<td>U09087_s_at</td>
+<td style="text-align:right">−49.8</td>
+<td>[−97.0, −2.7]</td>
+<td style="text-align:right">0.039</td>
+<td style="text-align:right">0.390</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center">否</td>
+<td style="text-align:right">0.37</td>
+</tr>
+<tr>
+<td>U05259_rna1_at</td>
+<td style="text-align:right">−4,460.9</td>
+<td>[−5,985.2, −2,936.7]</td>
+<td style="text-align:right">5.7×10⁻⁶</td>
+<td style="text-align:right">5.7×10⁻⁵</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center"><strong>是</strong></td>
+<td style="text-align:right">1.36</td>
+</tr>
+<tr>
+<td>X74262_at</td>
+<td style="text-align:right">−352.2</td>
+<td>[−659.6, −44.9]</td>
+<td style="text-align:right">0.026</td>
+<td style="text-align:right">0.260</td>
+<td style="text-align:center">是</td>
+<td style="text-align:center">否</td>
+<td style="text-align:right">0.30</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/fig5-validation.png" alt="图 5　发现与验证的效应对比" /></p>
+<p><strong>图 5 解读：</strong> 每个小图对比同一探针在发现部分（灰）和验证部分（紫）的均值差及逐项 95% CI。</p>
+<ul>
+<li>10 个候选的方向全部一致，其中 8 个在验证时效应变小，比值的中位数为 0.736。</li>
+<li>只有 M92287_at 和 U05259_rna1_at 的效应变大，比值分别为 1.24 和 1.36。</li>
+<li>各探针的强度尺度不同，所以每个小图的横轴是独立的，不能跨图比较效应的大小。</li>
+</ul>
+<p><strong>C4 的三个问题：</strong></p>
+<ol>
+<li><strong>哪条证据改变了我最初的判断？</strong> 是效应缩小这件事。发现阶段 U22376_cds2_s_at 的 p 值小到 10⁻⁹，我原以为它的效应会原样复现。结果验证时它的差值只剩 56%，而且 10 个候选里有 8 个变小。这就是&quot;赢家诅咒&quot;：按 p 值挑选时，挑中的往往是真实效应加上一点偏大噪声的那些。未通过的 3 个比值是 0.30、0.37、0.61，都在最小的四个之内。</li>
+<li><strong>未通过是否说明没有效应？</strong> 不能这么说。这 3 个探针在 test 中方向一致，raw p 都小于 0.05，逐项 CI 也都不跨 0，只是没达到预先定好的候选家族判据（0.005）。另外，L13278_at 和 U09087_s_at 在 AML 组的平均强度分别只有 0.5 和 46.9，接近芯片的检测下限。对这类低强度探针，测量噪声本来就大。</li>
+<li><strong>test 能否叫外部独立队列？</strong> 不能。test 来自同一项研究的原始划分（<code>original_split</code> 列），使用同一芯片平台和相近的处理流程，只能算&quot;留出验证&quot;。要进一步确认，需要新的独立队列（最好来自不同中心、用不同平台，如 RNA-seq 或 qPCR）；如果想谈机制，还需要功能实验。</li>
+</ol>
+<hr />
+<h2>5. 进阶①：打乱 ALL/AML 标签的置换检验</h2>
+<p><strong>为什么做。</strong> &quot;356 ± 18.4&quot;这个参照来自检验相互独立的假设。但芯片上的基因常常成组地共同调控，探针之间显然不独立。我想知道：在保留真实相关结构的前提下，&quot;没有组别差异&quot;时的显著数到底会波动多大？1,694 是否仍然远远超出？</p>
+<p><strong>方法。</strong></p>
+<ul>
+<li>保持 AML 11、ALL 27 的组大小不变，把 train 的标签随机打乱 1,000 次（种子 42）。</li>
+<li>每次重新计算 7,129 个 Welch t 检验和两种校正。</li>
+<li>同时记录&quot;假 AML 组里混入了几个真 AML&quot;，以下称为重叠数。随机情况下重叠数的期望是 11×11/38≈3.18。</li>
+<li>打乱只改变样本的标签，每个样本的整条表达谱不动，所以探针之间的相关性被完整保留。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th style="text-align:right">独立参照</th>
+<th style="text-align:right">打乱标签 1,000 次</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>raw p≤0.05 的个数：平均 ± 标准差</td>
+<td style="text-align:right">356 ± 18.4</td>
+<td style="text-align:right">370 ± 199</td>
+</tr>
+<tr>
+<td>raw 个数：中位数 / 5%–95% / 最大值</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">312 / 162–791 / 1,466</td>
+</tr>
+<tr>
+<td>至少 1 个 Bonferroni 发现的比例</td>
+<td style="text-align:right">0.05（名义）</td>
+<td style="text-align:right">0.075</td>
+</tr>
+<tr>
+<td>至少 1 个 BH 发现的比例</td>
+<td style="text-align:right">0.05（名义）</td>
+<td style="text-align:right">0.082</td>
+</tr>
+<tr>
+<td>其中重叠数 2–4（756 次）</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">Bonferroni 0.061 / BH 0.063</td>
+</tr>
+<tr>
+<td>其中重叠数 0–1 或 5–7（244 次）</td>
+<td style="text-align:right">—</td>
+<td style="text-align:right">Bonferroni 0.119 / BH 0.139</td>
+</tr>
+</tbody>
+</table>
+<p><img src="figures/fig6-permutation.png" alt="图 6　置换检验" /></p>
+<p><strong>图 6 解读：</strong></p>
+<ul>
+<li><strong>左图</strong>是 1,000 次打乱后原始显著数的分布。灰带是独立参照的 ±2 个标准差，竖线是实际标签下的 1,694。打乱后的分布向右拖着一条长尾，最多到 1,466，但没有一次达到 1,694，置换 p=1/1,001≈0.001。0.001 是 1,000 次置换所能给出的最小 p 值，不代表真实 p 恰好等于它。</li>
+<li><strong>右图</strong>按重叠数分组画出原始显著数。中位数在重叠数为 3 时最低，为 262；往两端升高，重叠数为 0 时是 585，为 7 时是 1,093，呈 U 形。重叠数为 7 的打乱只有 2 次，这一端的估计不稳定。</li>
+</ul>
+<p><strong>我从中得到的四点：</strong></p>
+<ol>
+<li><strong>期望不受相关性影响，波动受很大影响。</strong> 打乱后的平均值 370 与独立参照的 356 接近，这和第 2 节&quot;期望不需要独立性&quot;一致。但标准差从 18.4 变成 199，大了约 11 倍。所以&quot;按独立参照，1,694−356≈1,338 个是真的&quot;这种减法并不可靠，因为偶然显著数本身就可能在 162 到 791 之间变化。</li>
+<li><strong>相关性没能解释 1,694。</strong> 即使把相关结构完整保留下来，打乱标签也从未产生这么多显著结果，&quot;存在大量真实差异&quot;这一点因此更有说服力。</li>
+<li><strong>打乱后的标签并不完全&quot;无信息&quot;。</strong> Bonferroni 和 BH 在 7.5%–8.2% 的打乱中至少出了 1 个发现，高于名义的 5%。按重叠数分层后可以看到，超出部分主要来自重叠数偏离 3 的打乱。比如重叠数为 0 时，11 个真 AML 全在&quot;假 ALL&quot;组里，打乱后的分组其实仍然与真实分组强相关，真信号由此漏了进来，也解释了右图的 U 形。重叠数接近随机期望（2–4）时，这一比例为 6.1%–6.3%，以 756 次估计的 MCSE 约为 0.009，与 5% 相差不大。两种指标的 Spearman 相关系数也说明了 U 形：重叠数本身与显著数的相关只有 0.017，而&quot;重叠数离 3.18 有多远&quot;与显著数的相关为 0.27。</li>
+<li><strong>有一个我没能解释的离群点。</strong> 编号为 11 的那次打乱（<code>adv1-permutation-null.csv</code> 中 perm=11）重叠数正好是 3，却得到 1,466 个原始显著、2 个 Bonferroni 发现和 7 个 BH 发现。我推测可能和样本中某种未知的分组结构有关，但没有证据，所以只把它记录下来，不做解释。</li>
+</ol>
+<p><strong>边界：</strong> 只有 38 个样本时，打乱方式有限，而且无法让每次打乱都与真实标签完全无关。如果按重叠数做分层（受限）置换，可以得到更干净的零分布，我没有做这一步。</p>
+<hr />
+<h2>6. 进阶②：Storey π0 与 q-value</h2>
+<p><strong>为什么做。</strong> 实验 B 显示，BH 实际的 FDR 约为 π0·α。真实数据中，如果大量探针确实有差异，π0 明显小于 1，BH 就偏保守。另外，π0 本身正好回答我的问题&quot;大概有多少是真的&quot;：非零假设的个数约为 m×(1−π0)。</p>
+<p><strong>方法。</strong></p>
+<ul>
+<li><strong>原理：</strong> 零假设下的 p 值服从 0 到 1 的均匀分布；真有差异的探针，p 值大多集中在 0 附近。因此 p&gt;λ 的那一段基本都来自零假设。</li>
+<li><strong>π0 的估计：</strong> π0(λ)=#{p&gt;λ}/[m(1−λ)]，事先固定 λ=0.5。</li>
+<li><strong>q 值：</strong> q=min(1, π0×BH 校正前的 m·p₍ᵢ₎/i)，再从后往前取累积最小值。等价地，q≤0.05 相当于&quot;BH 校正后 p≤0.05/π0&quot;。</li>
+</ul>
+<p><strong>结果。</strong></p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π0（λ=0.5）</td>
+<td>0.6225，即非零假设约 2,691 个（37.7%）</td>
+</tr>
+<tr>
+<td>λ 取 0.2–0.8 时的 π0</td>
+<td>0.595–0.693，对应约 2,185–2,889 个</td>
+</tr>
+<tr>
+<td>λ=0.05 时的 π0</td>
+<td>0.80（小 p 值区混进了大量信号，估计偏高）</td>
+</tr>
+<tr>
+<td>q≤0.05 的个数</td>
+<td>773（BH 为 535，且 535 个全部包含在这 773 个之中）</td>
+</tr>
+<tr>
+<td>打乱标签后的 π0</td>
+<td>中位数 0.977，5% 分位数 0.781，最小值 0.617</td>
+</tr>
+</tbody>
+</table>
+<p><strong>图 4 右解读：</strong> 蓝线是实际标签下 π0 随 λ 的变化，灰带是 1,000 次打乱的 5%–95% 范围。</p>
+<ul>
+<li>实际的 π0=0.623，远低于打乱后的中位数 0.977。λ 在 0.4 以上时蓝线基本是平的，说明估计对 λ 不太敏感。</li>
+<li>但在 1,000 次打乱里，确实有一次（即第 5 节提到的 perm=11）π0 降到了 0.617，与实际值相当。所以在探针相关的情况下，π0 的估计误差可能很大，不能当作精确的数字使用。</li>
+<li>左图同样印证了这个估计：右侧平坦部分每格约 222 个，正好等于 0.6225×356。</li>
+</ul>
+<hr />
+<h2>7. 两项进阶如何改变我的主结论</h2>
+<table>
+<thead>
+<tr>
+<th>结论</th>
+<th>只看主线时</th>
+<th>加入两项进阶后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>存在大量真实差异</td>
+<td>1,694 远大于独立参照 356</td>
+<td><strong>得到加强</strong>：与保留相关结构的置换零分布（最多 1,466）比较，1,694 仍然超出全部 1,000 次</td>
+</tr>
+<tr>
+<td>真实差异有多少</td>
+<td>容易算成 1,694−356≈1,338</td>
+<td><strong>被修正</strong>：置换检验表明这种减法不可靠；Storey 给出约 2,200–2,900 个，但置换检验又表明 π0 的估计可能偏差很大，所以只说&quot;以千计，大约三分之一&quot;，不报精确数字</td>
+</tr>
+<tr>
+<td>BH / Bonferroni 在真实数据上仍然有效</td>
+<td>只有理论保证</td>
+<td><strong>基本成立但有保留</strong>：打乱较充分时，至少 1 个发现的比例约为 6%；分组未被充分打乱时，比例偏高</td>
+</tr>
+<tr>
+<td>应该点名哪些探针</td>
+<td>BH 535 → 锁定 10 个 → 7 个通过</td>
+<td><strong>不改变</strong>：q 值会把名单扩大到 773 个，但 q 依赖 π0 的估计，而置换检验显示这个估计不够稳定。用于后续验证的名单仍然是事先锁定的 10 个</td>
+</tr>
+</tbody>
+</table>
+<p>总结一下：两项进阶都没有推翻主线，作用主要是给&quot;有多少&quot;这个问题加上了误差范围。在点名候选这一步，我选择更稳健的做法：不依赖 π0，名单在看验证数据之前就已锁定。</p>
+<hr />
+<h2>8. 概念自检</h2>
+<h3>8.1 三个核心概念</h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>我的定义</th>
+<th>本作业中的例子</th>
+<th>一个常见的错误理解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>p-value</td>
+<td>假设零假设成立且模型假设满足，得到&quot;至少和观测结果一样极端&quot;的统计量的概率</td>
+<td>U22376_cds2_s_at 的 raw p=8.39×10⁻⁹</td>
+<td>&quot;这个探针有 99.999999% 的概率真有差异&quot;。p 值是在零假设成立的前提下算出的概率，不是零假设为真的概率</td>
+</tr>
+<tr>
+<td>adjusted p-value</td>
+<td>在<strong>指定的家族和校正方法</strong>下，这个检验刚好能被拒绝时对应的最小整体阈值</td>
+<td>同一探针在完整家族下 BH 为 5.98×10⁻⁵，只校正前 20 个时为 1.68×10⁻⁷</td>
+<td>&quot;校正后 p 是这个探针单独的属性&quot;。实际上换一个家族定义，数值就变了</td>
+</tr>
+<tr>
+<td>FDR</td>
+<td>E[V/max(R,1)]：在多次重复中，假发现占全部发现的比例的平均值</td>
+<td>实验 B（δ=1.0）中 BH 的 FDR 为 0.046，FWER 却是 0.754</td>
+<td>&quot;BH≤0.05 的 535 个里最多只有 27 个是假的&quot;。FDR 是长期平均，不是对这一批的保证</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FWER 与 FDR 的区别：</strong> FWER 控制的是&quot;至少错 1 个&quot;的概率，FDR 控制的是&quot;发现中错的比例&quot;的平均值。当所有零假设都成立时，两者相等（实验 A 中都是 0.051）。</p>
+<p><strong>BH 校正后的 p 值或 q 值，为什么不是单个探针为真的概率？</strong> 它描述的是&quot;以此为阈值时，整批发现的平均错误比例&quot;，是对一批发现的整体陈述。要估计单个探针为假的概率，需要 local FDR 等其他工具。</p>
+<h3>8.2 1,000 个全零检验为什么会有约 50 个显著？是否要求独立？</h3>
+<p>每个零假设检验的 p 值落在 0.05 以下的概率是 0.05。期望可以逐项相加，所以 1,000 个检验平均约有 50 个显著。这一步不需要独立性。独立性决定的是波动有多大：</p>
+<ul>
+<li>在实验 A 的独立模拟中，标准差为 6.76。</li>
+<li>在保留真实相关结构的置换中（m=7,129），标准差是独立参照的约 11 倍（199 对 18.4），但平均值几乎不变（370 对 356）。</li>
+</ul>
+<h3>8.3 BH 校正后的 p 值与 Storey q 值的区别</h3>
+<p>BH 相当于假设 π0=1，也就是最坏情况。Storey 先从 p 值分布中估计 π0，再把 BH 的结果乘以 π0。当 π0 明显小于 1 时，Storey 方法检出更多：本例中 773 对 535。代价是结果依赖 π0 的估计；在探针强相关时，这个估计可能不稳定（打乱标签后最低为 0.617）。</p>
+<h3>8.4 如何选择控制目标</h3>
+<ul>
+<li><strong>探索性的组学筛选：</strong> 比如本作业中从 7,129 个探针里找候选，后面还有验证环节。可以接受少量假阳性，更怕漏掉，所以选 <strong>FDR（BH）</strong>。</li>
+<li><strong>确证性的临床终点：</strong> 比如一项Ⅲ期试验同时检验两个主要终点，任何一个假阳性都可能导致无效的药物获批。这时应该选 <strong>FWER</strong>（Bonferroni 或 Holm）。</li>
+<li>本作业两者都用到了：发现阶段用 BH 生成候选，验证阶段在 10 个候选中用 Bonferroni 做确认。</li>
+</ul>
+<p><strong>为什么还需要效应量、CI、机制和独立验证？</strong> 校正只解决&quot;偶然显著&quot;的问题，回答不了下面这些：</p>
+<ul>
+<li><strong>效应大不大。</strong> L13278_at 的 p=3.25×10⁻⁷，但差值只有 127 个强度单位，AML 组的均值仅为 0.5。</li>
+<li><strong>估计是否偏乐观。</strong> 10 个候选中有 8 个在验证时效应变小。</li>
+<li><strong>为什么不同。</strong> 两组的差异还可能来自技术或批次因素，比如有 3 个 AFFX 质控探针也进入了 BH 名单。</li>
+</ul>
+<p><strong>一条校正不能证明的结论：</strong> &quot;U22376_cds2_s_at 低表达是 AML 发生的原因，可以单独用于诊断 AML。&quot;</p>
+<h3>8.5 用自己的数字纠正常见误解</h3>
+<table>
+<thead>
+<tr>
+<th>常见误解</th>
+<th>用本作业的数字反驳</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原始显著的 1,694 个都是差异基因</td>
+<td>全零时平均也有约 356 个，置换零分布可达 162–791 个</td>
+</tr>
+<tr>
+<td>BH 535 和 Bonferroni 26 差这么多，总有一个算错了</td>
+<td>两者控制的错误不同；实验 B 中两者的错误率都控制在各自的目标以内</td>
+</tr>
+<tr>
+<td>只校正最后报告的 20 个就行</td>
+<td>C2 中校正 p 值因此小了 356 倍，家族定义是错的</td>
+</tr>
+<tr>
+<td>p 越小，效应越大</td>
+<td>M55150_at 的 |d| 最大（2.98），但 p 值只排第 3</td>
+</tr>
+<tr>
+<td>验证没通过就是没效应</td>
+<td>未通过的 3 个方向全都一致，逐项 CI 也不跨 0</td>
+</tr>
+<tr>
+<td>BH 的 FWER 是 0.754，说明 BH 失控了</td>
+<td>BH 本来就不控制 FWER；它控制的 FDR 为 0.046</td>
+</tr>
+</tbody>
+</table>
+<h3>8.6 手算示例（教学 p 值，并非真实探针）</h3>
+<p>p=[0.001, 0.009, 0.020, 0.040, 0.200]，m=5，阈值 0.05。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">排序 i</th>
+<th style="text-align:right">p₍ᵢ₎</th>
+<th style="text-align:right">Bonferroni 校正 p=min(1,5p)</th>
+<th style="text-align:right">BH 阈值 i×0.05/5</th>
+<th style="text-align:center">p₍ᵢ₎ ≤ 阈值？</th>
+<th style="text-align:right">BH 校正 p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0.001</td>
+<td style="text-align:right">0.005</td>
+<td style="text-align:right">0.01</td>
+<td style="text-align:center">是</td>
+<td style="text-align:right">0.005</td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td style="text-align:right">0.009</td>
+<td style="text-align:right">0.045</td>
+<td style="text-align:right">0.02</td>
+<td style="text-align:center">是</td>
+<td style="text-align:right">0.0225</td>
+</tr>
+<tr>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0.020</td>
+<td style="text-align:right">0.10</td>
+<td style="text-align:right">0.03</td>
+<td style="text-align:center">是</td>
+<td style="text-align:right">0.0333</td>
+</tr>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:right">0.040</td>
+<td style="text-align:right">0.20</td>
+<td style="text-align:right">0.04</td>
+<td style="text-align:center">是（恰好相等）</td>
+<td style="text-align:right">0.05</td>
+</tr>
+<tr>
+<td style="text-align:right">5</td>
+<td style="text-align:right">0.200</td>
+<td style="text-align:right">1.00</td>
+<td style="text-align:right">0.05</td>
+<td style="text-align:center">否</td>
+<td style="text-align:right">0.20</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Bonferroni：</strong> 发现 2 个。</li>
+<li><strong>BH：</strong> 满足条件的最大位置是 k=4，因此发现前 4 个。</li>
+<li><strong>注意：</strong> 第 4 个的 p 值恰好等于阈值，按&quot;≤&quot;规则计入。编程时要注意浮点误差可能把它判成&quot;不等于&quot;。</li>
+<li><strong>差异的原因：</strong> BH 的阈值随排序位置逐级放宽，所以比 Bonferroni 多检出了第 3、4 个。</li>
+</ul>
+<hr />
+<h2>9. 结论：主张—证据—推理—边界</h2>
+<p><strong>整体问题</strong></p>
+<ul>
+<li><strong>主张：</strong> AML 与 ALL 在 train 中存在大规模的探针表达差异，约有数千个、大约三分之一的探针。其中可以可靠点名的，是 7 个在留出样本中复现的探针。</li>
+<li><strong>证据：</strong>
+<ul>
+<li>原始显著 1,694 个，超过全部 1,000 次打乱标签的结果。</li>
+<li>Storey π0=0.62，对应约 2,700 个非零假设；λ 取 0.2–0.8 时为 2,200–2,900 个。</li>
+<li>BH 给出 535 个；锁定 10 个后，test 中 7 个通过候选家族 Bonferroni，且 10 个方向全部一致。</li>
+</ul>
+</li>
+<li><strong>推理：</strong>
+<ul>
+<li>置换零分布保留了探针间的相关性，用它作参照比独立参照更可信。</li>
+<li>发现与验证使用不同的样本，候选名单和验证判据都事先写定，验证结果不受挑选过程影响。</li>
+</ul>
+</li>
+<li><strong>边界：</strong>
+<ul>
+<li>&quot;约三分之一&quot;依赖 π0 的估计，而置换检验显示这个估计不稳定。</li>
+<li>非零差异不等于生物学上重要的差异，也可能来自技术或批次因素。</li>
+<li>探针不等于基因：我没有做探针注释。</li>
+<li>test 不是外部队列。</li>
+<li>效应量在验证中普遍缩小，发现阶段的数值不能直接引用。</li>
+</ul>
+</li>
+</ul>
+<p><strong>单个候选（U22376_cds2_s_at）</strong></p>
+<ul>
+<li><strong>主张：</strong> 该探针在 AML 中的平均强度低于 ALL。</li>
+<li><strong>证据：</strong> train 中差值为 −3,161（95% CI −3,978 至 −2,344），完整家族 BH 为 6.0×10⁻⁵；锁定后，test 中差值为 −1,767，候选家族 Bonferroni 为 0.023，方向一致。</li>
+<li><strong>推理：</strong> 判据事先写定，验证用的是独立的样本。</li>
+<li><strong>边界：</strong> 效应缩小了约 44%；这仍是同一研究内的探针级关联，不说明因果，也不能单独用于诊断。</li>
+</ul>
+<hr />
+<h2>10. 可复现性与 AI 使用声明</h2>
+<p><strong>可复现性</strong></p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码</td>
+<td><code>analysis.py</code>（单个脚本，从头到尾运行一次即可得到全部表格和图）</td>
+</tr>
+<tr>
+<td>环境</td>
+<td>conda 环境 <code>mtest</code>：Python 3.13.16，numpy 2.5.4，pandas 3.0.6，scipy 1.18.1，matplotlib 3.11.2</td>
+</tr>
+<tr>
+<td>随机设置</td>
+<td>种子 42；模拟重复 1,000 次；置换 1,000 次；λ=0.5；α=0.05</td>
+</tr>
+<tr>
+<td>数据校验</td>
+<td>SHA-256 <code>915bce00295ac470f6bd970a4032730a170a080642a5da53ab0bcb0545156f19</code></td>
+</tr>
+<tr>
+<td>输出</td>
+<td><code>output/results.json</code>（报告中所有数字的来源）、各步骤的 CSV、<code>figures/</code> 下的 6 张图</td>
+</tr>
+<tr>
+<td>运行</td>
+<td><code>python analysis.py</code>，约 6 秒</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AI 使用声明</strong></p>
+<p>本作业使用了 Claude（Anthropic，Claude Code 桌面版）。具体用途如下：</p>
+<ol>
+<li>和我讨论报告结构、自选问题的表述方式，以及两项进阶内容的选择。</li>
+<li>编写 <code>analysis.py</code>。其中模拟实验与 C1–C4 的函数直接取自课程 notebook；置换检验、Storey π0 / q 值和全部作图代码是新写的。</li>
+<li>在我的 conda 环境中运行脚本，并起草本报告的文字。</li>
+</ol>
+<p><strong>本人完成的核对：</strong></p>
+<ul>
+<li>手算了 8.6 节的示例：Bonferroni 发现 2 个，BH 发现 4 个，与表中结果一致。</li>
+<li>用 scipy 单独对 U22376_cds2_s_at 做了 Welch t 检验，得到 raw p=8.39×10⁻⁹，与 C1 的结果一致。</li>
+<li>阅读了 <code>storey_pi0</code> 和 <code>storey_q</code> 的实现。q 值相当于在 BH 校正后的 p 值上再乘以 π0，所以 q≤0.05 的探针（773 个）比 BH 的（535 个）多。</li>
+</ul>
+<p>报告其余文字由 AI 起草，我逐节通读后保留。结论与边界由我确认，文责自负。</p>
+<hr />
+<h2>附录：进阶内容申报</h2>
+<table>
+<thead>
+<tr>
+<th>加分项</th>
+<th>我做了什么</th>
+<th>证据位置</th>
+<th>对主问题的作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自选问题</td>
+<td>&quot;7,129 个探针里有多少差异是真的，能可靠点名哪几个&quot;，把&quot;数量估计&quot;和&quot;点名验证&quot;分开回答</td>
+<td>第 0、7、9 节</td>
+<td>全文围绕这个问题组织</td>
+</tr>
+<tr>
+<td>进阶①：置换检验</td>
+<td>打乱 train 的 ALL/AML 标签 1,000 次，保留探针间的相关结构，得到原始显著数和两种校正的零分布，并按重叠数分层</td>
+<td>第 5 节，图 6，<code>output/adv1-permutation-null.csv</code></td>
+<td>加强了&quot;存在大量真实差异&quot;；否定了&quot;1,694−356&quot;的减法；检查了 BH 和 Bonferroni 在相关数据上的表现</td>
+</tr>
+<tr>
+<td>进阶②：Storey π0 / q 值</td>
+<td>估计 π0 并做 λ 敏感性分析，计算 q 值，并与置换零分布下的 π0 比较</td>
+<td>第 6 节，图 4 右，<code>C1-discovery-all-probes.csv</code> 的 <code>storey_q</code> 列</td>
+<td>回答了&quot;大概有多少&quot;（约三分之一）；同时用进阶①说明这个估计不稳定，因此不据此扩大候选名单</td>
+</tr>
+</tbody>
+</table>
+<p><strong>参考文献</strong></p>
+<ol>
+<li>Golub TR, et al. Molecular classification of cancer: class discovery and class prediction by gene expression monitoring. <em>Science</em>. 1999;286:531–537.</li>
+<li>Benjamini Y, Hochberg Y. Controlling the false discovery rate: a practical and powerful approach to multiple testing. <em>J R Stat Soc B</em>. 1995;57:289–300.</li>
+<li>Benjamini Y, Yekutieli D. The control of the false discovery rate in multiple testing under dependency. <em>Ann Stat</em>. 2001;29:1165–1188.</li>
+<li>Storey JD. A direct approach to false discovery rates. <em>J R Stat Soc B</em>. 2002;64:479–498.</li>
+<li>Storey JD, Tibshirani R. Statistical significance for genomewide studies. <em>PNAS</em>. 2003;100:9440–9445.</li>
+</ol>
+</body></html>

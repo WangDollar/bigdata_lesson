@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多重检验投屏版</title>
+<style>
+:root {
+  --ink: #0b0b0b; --ink2: #52514e; --ink3: #898781;
+  --line: #e1e0d9; --base: #c3c2b7; --panel: #f6f5f0; --bg: #ffffff;
+  --raw: #2a78d6; --bonf: #eb6834; --bh: #1baf7a; --valid: #6250d6; --accent: #184f95;
+  --r1: #86b6ef; --r2: #6da7ec; --r3: #5598e7; --r4: #3987e5; --r5: #256abf; --r6: #184f95;
+}
+@page { size: 1280px 720px; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.slide { width: 1280px; height: 720px; padding: 44px 64px 40px; position: relative;
+  overflow: hidden; break-after: page; display: flex; flex-direction: column; }
+.slide:last-child { break-after: auto; }
+.tag { font-size: 16px; font-weight: 600; color: var(--accent); letter-spacing: .04em; }
+h1 { font-size: 50px; line-height: 1.25; margin: 18px 0 10px; }
+h2 { font-size: 37px; line-height: 1.3; margin: 6px 0 6px; }
+.lead { font-size: 22px; color: var(--ink2); margin: 0 0 18px; line-height: 1.5; }
+.body { flex: 1; display: grid; gap: 36px; align-items: center; min-height: 0; }
+.cols { grid-template-columns: 1.25fr 1fr; }
+.cols-r { grid-template-columns: 1fr 1.1fr; }
+img { width: 100%; display: block; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--panel); border-radius: 10px; padding: 14px 20px; font-size: 22px; line-height: 1.5; }
+.card b { font-weight: 700; }
+.card .k { font-size: 16px; color: var(--ink3); font-weight: 600; letter-spacing: .03em; }
+.big { font-size: 46px; font-weight: 700; line-height: 1.15; }
+.mid { font-size: 28px; font-weight: 700; }
+.muted { color: var(--ink2); }
+.small { font-size: 18px; color: var(--ink2); }
+.chip { display: inline-block; width: 13px; height: 13px; border-radius: 3px; margin-right: 8px; vertical-align: 1px; }
+.foot { position: absolute; right: 40px; bottom: 20px; font-size: 14px; color: var(--ink3); }
+.backup .tag { color: var(--ink3); }
+table { border-collapse: collapse; width: 100%; font-size: 23px; }
+th, td { border-bottom: 1px solid var(--line); padding: 12px 14px; text-align: left; vertical-align: top; line-height: 1.45; }
+th { font-size: 17px; color: var(--ink3); font-weight: 600; border-bottom: 2px solid var(--base); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.hl td { background: #eef7f2; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+ul.tight { margin: 0; padding-left: 1.2em; }
+ul.tight li { margin: 4px 0; }
+/* funnel */
+.funnel { display: flex; flex-direction: column; gap: 9px; }
+.frow { display: grid; grid-template-columns: 190px 1fr; align-items: center; height: 76px; }
+.fnum { height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 40px; font-weight: 700; border-radius: 8px 0 0 8px; }
+.ftxt { height: 100%; background: var(--panel); border-radius: 0 8px 8px 0; padding: 8px 22px;
+  display: flex; flex-direction: column; justify-content: center; }
+.ftxt b { font-size: 24px; }
+.ftxt span { font-size: 18px; color: var(--ink2); }
+</style>
+</head>
+<body>
+
+<!-- 1 问题 -->
+<section class="slide">
+  <div class="tag">第五课 · 多重检验校正 · 翻转课堂</div>
+  <h1>7,129 个探针里，<br>有多少差异是真的？</h1>
+  <div class="two" style="margin-top:22px">
+    <div class="card"><div class="k">问题 ① 数量</div><div class="mid">AML 与 ALL 之间，<br>大概有多少探针真有差异？</div></div>
+    <div class="card"><div class="k">问题 ② 点名</div><div class="mid">能可靠点名哪几个，<br>值得进一步验证？</div></div>
+  </div>
+  <p class="lead" style="margin-top:30px">数据：Golub 白血病芯片，7,129 个探针<br>
+  train：ALL 27 / AML 11（用来发现）　·　test：ALL 20 / AML 14（锁定候选后才打开）</p>
+  <p class="small">定义 → 模拟 → 真实数据 → 两个进阶 → 回答</p>
+  <div class="foot">1 / 10</div>
+</section>
+
+<!-- 2 定义 -->
+<section class="slide">
+  <div class="tag">先统一几个词</div>
+  <h2>这几个概念各管什么，又不是什么？</h2>
+  <table style="margin-top:14px">
+    <tr><th style="width:21%">概念</th><th style="width:45%">是什么</th><th>不是什么</th></tr>
+    <tr><td><b>p 值</b></td><td>假设"没差异"成立时，看到至少这么极端结果的概率</td><td>不是"没差异"为真的概率</td></tr>
+    <tr><td><b>家族 m</b></td><td>实际做过的全部检验，本例 m = 7,129</td><td>不是最后报告的那几个</td></tr>
+    <tr><td><span class="chip" style="background:var(--bonf)"></span><b>FWER</b>（Bonferroni）</td><td>至少出现 1 个假发现的概率；阈值改为 α / m</td><td>不是"每个检验各错 5%"</td></tr>
+    <tr><td><span class="chip" style="background:var(--bh)"></span><b>FDR</b>（BH）</td><td>发现里假发现所占比例的长期平均</td><td>不保证这一批里每个都是真的</td></tr>
+    <tr><td><b>adjusted p</b></td><td>在给定家族和方法下，刚好能被拒绝的整体阈值</td><td>不是探针自身的属性：换家族就变</td></tr>
+  </table>
+  <div class="foot">2 / 10</div>
+</section>
+
+<!-- 3 小例子 -->
+<section class="slide">
+  <div class="tag">定义 · 小例子</div>
+  <h2>同一组 p 值，两种校正为什么结果不同？</h2>
+  <p class="lead">5 个教学用 p 值（m = 5，α = 0.05），不是真实探针</p>
+  <div class="body cols">
+    <img src="figs/s03-toy.png" alt="BH 阶梯阈值与 Bonferroni 统一阈值">
+    <div class="stack">
+      <div class="card"><span class="chip" style="background:var(--bonf)"></span><b>Bonferroni</b><br>所有检验同一个门槛 0.05 / 5 = 0.01<br>→ <b>发现 2 个</b></div>
+      <div class="card"><span class="chip" style="background:var(--bh)"></span><b>BH</b><br>门槛随排名放宽：0.01, 0.02, …, 0.05<br>找最大的 k 使 p₍ₖ₎ ≤ k × 0.01 → k = 4<br>→ <b>发现 4 个</b></div>
+      <div class="small">第 4 个 p = 0.040 恰好等于阈值 0.04，按"≤"计入</div>
+    </div>
+  </div>
+  <div class="foot">3 / 10</div>
+</section>
+
+<!-- 4 全零模拟 -->
+<section class="slide">
+  <div class="tag">模拟 A · 全部无差异</div>
+  <h2>如果全都没差异，会"显著"多少个？</h2>
+  <p class="lead">1,000 个变量都没有差异，每次按 p ≤ 0.05 判断，重复 1,000 次</p>
+  <div class="body cols">
+    <img src="figs/s04-null.png" alt="全零模拟中原始显著数的分布">
+    <div class="stack">
+      <div class="card"><div class="big">≈ 50 个</div>= 1,000 × 0.05，全是假阳性<br><span class="small">（这个期望不需要检验相互独立）</span></div>
+      <div class="card">第一次只有 <b>42</b> 个，90% 落在 <b>39–61</b><br>→ 50 是平均，不是保证</div>
+      <div class="card"><div class="k">至少错 1 个的概率（FWER）</div>
+        <span class="chip" style="background:var(--raw)"></span>原始 p　<b>1.000</b><br>
+        <span class="chip" style="background:var(--bonf)"></span>Bonferroni　<b>0.051</b><br>
+        <span class="chip" style="background:var(--bh)"></span>BH　<b>0.051</b></div>
+    </div>
+  </div>
+  <div class="foot">4 / 10</div>
+</section>
+
+<!-- 5 部分信号 -->
+<section class="slide">
+  <div class="tag">模拟 B · 100 个真信号</div>
+  <h2>Bonferroni 还是 BH？要看你更怕哪种错</h2>
+  <p class="lead">1,000 个变量中 100 个真有差异（δ = 1.0），1,000 次重复的平均</p>
+  <table>
+    <tr><th style="width:40%"></th><th class="n"><span class="chip" style="background:var(--raw)"></span>原始 p</th><th class="n"><span class="chip" style="background:var(--bonf)"></span>Bonferroni</th><th class="n"><span class="chip" style="background:var(--bh)"></span>BH</th></tr>
+    <tr><td>检出力（真信号被找到的比例）</td><td class="n">0.78</td><td class="n">0.06</td><td class="n"><b>0.29</b></td></tr>
+    <tr class="hl"><td>FDR（发现里假的比例，平均）</td><td class="n">0.36</td><td class="n">0.007</td><td class="n"><b>0.046</b></td></tr>
+    <tr class="hl"><td>FWER（至少错 1 个的概率）</td><td class="n">1.00</td><td class="n">0.044</td><td class="n"><b>0.754</b></td></tr>
+  </table>
+  <p class="lead" style="margin:14px 0 16px">BH 的 FWER 是 0.754，FDR 却是 0.046，<b style="color:var(--ink)">并不矛盾</b>：平均 30 个发现里约 1.4 个是假的</p>
+  <div class="two">
+    <div class="card"><div class="k">探索性筛选 · 更怕漏</div><span class="chip" style="background:var(--bh)"></span>控制 <b>FDR</b>：用 BH</div>
+    <div class="card"><div class="k">确认性结论 · 更怕错</div><span class="chip" style="background:var(--bonf)"></span>控制 <b>FWER</b>：用 Bonferroni</div>
+  </div>
+  <div class="foot">5 / 10</div>
+</section>
+
+<!-- 6 漏斗 -->
+<section class="slide">
+  <div class="tag">真实数据 · 主线</div>
+  <h2>真实数据：证据一步步收紧</h2>
+  <div class="funnel" style="margin-top:12px">
+    <div class="frow"><div class="fnum" style="background:var(--r1)">7,129</div><div class="ftxt"><b>检验家族：train 中全部探针</b><span>每个探针做一次双侧 Welch t 检验，方案在看结果前写定</span></div></div>
+    <div class="frow"><div class="fnum" style="background:var(--r2)">1,694</div><div class="ftxt"><b>原始 p ≤ 0.05</b><span>全部无差异时也会有约 356 个</span></div></div>
+    <div class="frow"><div class="fnum" style="background:var(--r3)">535</div><div class="ftxt"><b>BH ≤ 0.05（FDR 5%）</b><span>错误比例的长期平均 ≤ 5%</span></div></div>
+    <div class="frow"><div class="fnum" style="background:var(--r4);color:#fff">26</div><div class="ftxt"><b>Bonferroni ≤ 0.05（FWER 5%）</b><span>"至少错 1 个"的概率 ≤ 5%</span></div></div>
+    <div class="frow"><div class="fnum" style="background:var(--r5);color:#fff">10</div><div class="ftxt"><b>锁定候选</b><span>打开 test 之前存档，并写好判据：候选家族 Bonferroni ≤ 0.05 且方向一致</span></div></div>
+    <div class="frow"><div class="fnum" style="background:var(--r6);color:#fff">7</div><div class="ftxt"><b>留出样本验证通过</b><span>test：ALL 20 / AML 14</span></div></div>
+  </div>
+  <div class="foot">6 / 10</div>
+</section>
+
+<!-- 7 验证 -->
+<section class="slide">
+  <div class="tag">真实数据 · 留出验证</div>
+  <h2>通过验证，是不是效应就原样复现了？</h2>
+  <p class="lead">不是：10 个候选方向全部一致，但 8 个效应变小（中位数只剩 0.74）</p>
+  <div class="body cols-r">
+    <div class="stack">
+      <div class="card"><div class="k">例子 · U22376_cds2_s_at（AML − ALL）</div>
+        发现 train：<b>−3,161</b>　<span class="small">[−3,978, −2,344]</span><br>
+        验证 test：<b>−1,767</b>　<span class="small">[−2,851, −683]</span><br>
+        只剩 <b>56%</b>，候选家族 Bonferroni 0.023 → 通过</div>
+      <div class="card"><b>赢家诅咒</b>：按 p 值挑出来的，往往是"真效应 + 偏大的噪声"<br>→ 引用效应时用 test 的数值</div>
+      <div class="card"><b>未通过 ≠ 没效应</b>：3 个未通过的方向都一致、CI 不跨 0，只是没过 0.005</div>
+    </div>
+    <img src="figs/s07-ratio.png" alt="10 个候选的验证/发现效应比">
+  </div>
+  <div class="foot">7 / 10</div>
+</section>
+
+<!-- 8 置换 -->
+<section class="slide">
+  <div class="tag">进阶 ① · 置换检验</div>
+  <h2>探针彼此相关时，"偶然显著"会波动多大？</h2>
+  <p class="lead">把 train 的 ALL/AML 标签打乱 1,000 次：标签与表达无关，但探针间的相关性原样保留</p>
+  <div class="body cols">
+    <img src="figs/s08-perm.png" alt="打乱标签后原始显著数的分布">
+    <div class="stack">
+      <div class="card"><div class="k">偶然显著数：平均 ± 标准差</div>
+        假设独立　<b>356 ± 18</b><br>打乱标签　<b>370 ± 199</b><br>
+        <span class="small">平均差不多，波动大约 11 倍</span></div>
+      <div class="card">实际的 <b>1,694</b> 超过全部 1,000 次打乱<br><span class="small">置换 p = 1/1,001（1,000 次能给出的最小值）</span></div>
+      <div class="card">大量真实差异：<b>成立</b><br>"1,694 − 356 个是真的"：<b>不可靠</b></div>
+    </div>
+  </div>
+  <div class="foot">8 / 10</div>
+</section>
+
+<!-- 9 Storey -->
+<section class="slide">
+  <div class="tag">进阶 ② · Storey π0</div>
+  <h2>那大概有多少探针真有差异？</h2>
+  <p class="lead">真零假设的 p 值均匀分布：右侧"平坦部分"的高度，就是真零假设的比例 π0</p>
+  <div class="body cols">
+    <img src="figs/s09-pvalues.png" alt="7,129 个原始 p 值的直方图">
+    <div class="stack">
+      <div class="card">π0 = #{p &gt; 0.5} ÷ (7,129 × 0.5) = <b>0.62</b><br>
+        → 非零约 <b>2,700</b> 个（38%）<br><span class="small">λ 取 0.2–0.8：2,200–2,900 个</span></div>
+      <div class="card"><b>但是</b>：打乱标签后 π0 中位数 0.98，最低一次也到 <b>0.617</b><br>→ 相关数据里估计不稳，<b>只当数量级</b></div>
+      <div class="card">q ≤ 0.05 有 773 个（BH 535）<br>→ 不据此扩大名单：名单已提前锁定</div>
+    </div>
+  </div>
+  <div class="foot">9 / 10</div>
+</section>
+
+<!-- 10 回答 -->
+<section class="slide">
+  <div class="tag">回答</div>
+  <h2>我的回答</h2>
+  <div class="two" style="margin-top:14px">
+    <div class="card"><div class="k">① 有多少是真的？</div><div class="mid">以千计，约三分之一的探针</div><span class="small">原始显著超过全部打乱结果；π0 只作数量级</span></div>
+    <div class="card"><div class="k">② 能可靠点名哪几个？</div><div class="mid">535 → 锁定 10 → 7 个复现</div><span class="small">FDR 5% 下筛选；候选与判据都在看 test 之前写定</span></div>
+  </div>
+  <div class="card" style="margin-top:22px"><div class="k">边界</div>
+    <ul class="tight">
+      <li>test 来自同一项研究的原始划分 → 是留出验证，不是外部队列</li>
+      <li>探针 ≠ 基因，关联 ≠ 因果；BH 名单里还有 3 个 AFFX 质控探针</li>
+      <li>验证后效应普遍缩水 → 引用 test 中的效应，不用 train 的</li>
+      <li>"约三分之一"依赖 π0 估计，在相关数据里不稳定</li>
+    </ul></div>
+  <div class="foot">10 / 10</div>
+</section>
+
+<!-- 备用 A -->
+<section class="slide backup">
+  <div class="tag">备用 A · 家族定义</div>
+  <h2>只校正最后报告的 20 个，可以吗？</h2>
+  <table style="margin-top:16px">
+    <tr><th>U22376_cds2_s_at</th><th class="n">值</th></tr>
+    <tr><td>raw p</td><td class="n">8.39 × 10⁻⁹</td></tr>
+    <tr><td>完整家族（m = 7,129）校正后</td><td class="n"><b>5.98 × 10⁻⁵</b></td></tr>
+    <tr><td>先挑前 20 个、只在 20 个里校正</td><td class="n"><b>1.68 × 10⁻⁷</b>　<span class="small">小了 356 倍</span></td></tr>
+  </table>
+  <div class="two" style="margin-top:24px">
+    <div class="card">这次 20 个在两种流程下都显著，<b>数量没变</b></div>
+    <div class="card">但这 20 个是看完 7,129 个 p 值才挑的，家族仍是 7,129 → <b>保证失效</b><br><span class="small">事先指定的 20 个则可以</span></div>
+  </div>
+  <div class="foot">备用 A</div>
+</section>
+
+<!-- 备用 B -->
+<section class="slide backup">
+  <div class="tag">备用 B · 置换细节</div>
+  <h2>打乱标签后，校正为什么仍有 7.5%–8.2% 出了"发现"？</h2>
+  <p class="lead">只有 11 个 AML：打乱后的"假分组"可能仍与真分组相关，真信号漏了进来</p>
+  <div class="body cols">
+    <img src="figs/sB-overlap.png" alt="原始显著数中位数与混入真 AML 人数的关系">
+    <table>
+      <tr><th>至少 1 个发现的比例</th><th class="n">Bonf.</th><th class="n">BH</th></tr>
+      <tr><td>全部 1,000 次</td><td class="n">7.5%</td><td class="n">8.2%</td></tr>
+      <tr class="hl"><td>混入 2–4 个（756 次）</td><td class="n">6.1%</td><td class="n">6.3%</td></tr>
+      <tr><td>混入 0–1 或 5–7 个（244 次）</td><td class="n">11.9%</td><td class="n">13.9%</td></tr>
+    </table>
+  </div>
+  <div class="foot">备用 B</div>
+</section>
+
+<!-- 备用 C -->
+<section class="slide backup">
+  <div class="tag">备用 C · 结论边界</div>
+  <h2>三个容易说错的地方</h2>
+  <div class="three" style="margin-top:18px">
+    <div class="card"><div class="k">未通过 ≠ 没效应</div>L13278_at、U09087_s_at、X74262_at：方向一致、raw p &lt; 0.05、逐项 CI 不跨 0，只是没过 0.005<br><span class="small">前两个在 train 中 AML 均值仅 0.5 和 46.9，接近噪声</span></div>
+    <div class="card"><div class="k">test ≠ 外部验证</div>同一研究的原始划分、同一芯片平台 → 留出验证<br><span class="small">外部验证需要新队列、不同中心或平台（qPCR、RNA-seq）</span></div>
+    <div class="card"><div class="k">探针 ≠ 基因</div>一个基因可有多个探针；本报告没做注释<br><span class="small">BH 名单里有 3 个 AFFX 质控探针 → 可能有技术或批次差异</span></div>
+  </div>
+  <div class="foot">备用 C</div>
+</section>
+
+<!-- 备用 D -->
+<section class="slide backup">
+  <div class="tag">备用 D · 方法选择</div>
+  <h2>为什么这样选方法？</h2>
+  <div class="two" style="margin-top:18px">
+    <div class="card"><div class="k">发现用 BH，验证用 Bonferroni</div>筛选怕漏 → FDR；确认怕错 → FWER<br><span class="small">验证家族只有 10 个，阈值 0.005，代价小</span></div>
+    <div class="card"><div class="k">为什么用 Welch t 检验</div>两组方差不一定相同，样本量也不平衡（11 vs 27）</div>
+    <div class="card"><div class="k">为什么不取 log、不说"倍数"</div>原始强度里 28.7% 是负值，取不了 log<br><span class="small">只报告强度单位上的均值差</span></div>
+    <div class="card"><div class="k">需要独立吗</div>E[R] = m·α 不需要；Bonferroni 不需要<br><span class="small">BH 需独立或正相关（PRDS），任意相关用 BY</span></div>
+  </div>
+  <div class="foot">备用 D</div>
+</section>
+
+</body>
+</html>
