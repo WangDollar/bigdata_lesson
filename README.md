@@ -10,7 +10,7 @@
 | 4 | 高维数据与降维（PCA / UMAP） | [`lessons/04-high-dimension-reduction`](lessons/04-high-dimension-reduction) | 🚧 待导入 |
 | 5 | 统计检验与假设设计 | [`lessons/05-hypothesis-testing`](lessons/05-hypothesis-testing) | 🚧 待导入 |
 | 6 | 多重检验校正 | [`lessons/06-multiple-testing`](lessons/06-multiple-testing) | 🚧 待导入 |
-| 7 | 机器学习基础与朴素贝叶斯 | [`lessons/07-naive-bayes`](lessons/07-naive-bayes) | 🚧 待导入 |
+| 7 | 机器学习基础与朴素贝叶斯 | [`lessons/07-naive-bayes`](lessons/07-naive-bayes) | ✅ 已导入 |
 | 8 | 线性模型、LDA 与 Logistic Regression | [`lessons/08-linear-models`](lessons/08-linear-models) | ✅ 材料已导入（无作业） |
 | 9 | SVM 与 Margin | [`lessons/09-svm-margin`](lessons/09-svm-margin) | ✅ 已导入 |
 | 10 | 集成学习与 Bootstrapping | [`lessons/10-ensemble-bootstrap`](lessons/10-ensemble-bootstrap) | ✅ 已导入 |
