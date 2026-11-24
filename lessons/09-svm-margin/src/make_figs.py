@@ -5,8 +5,9 @@ import numpy as np, pandas as pd, matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-LESSON = Path('/Users/dollar/Desktop/note/实践课作业/9. SVM'); FIG = LESSON/'作业提交/figures'
-sys.path.insert(0, str(LESSON/'scripts'))
+LESSON = Path(__file__).resolve().parents[1]  # lessons/09-svm-margin
+FIG = LESSON/'report/figures'
+sys.path.insert(0, str(LESSON/'src/course'))
 from lab_utils import *
 plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 7.5, 'axes.titlesize': 8, 'axes.labelsize': 7.5,
     'xtick.labelsize': 6.5, 'ytick.labelsize': 6.5, 'legend.fontsize': 6.5, 'savefig.dpi': 220,

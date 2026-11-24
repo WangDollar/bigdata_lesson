@@ -4,8 +4,8 @@ import numpy as np, pandas as pd
 from scipy.stats import norm
 from scipy.spatial.distance import pdist
 pd.set_option('display.width', 220); pd.set_option('display.max_columns', 30)
-LESSON = Path('/Users/dollar/Desktop/note/实践课作业/9. SVM')
-sys.path.insert(0, str(LESSON/'scripts'))
+LESSON = Path(__file__).resolve().parents[1]  # lessons/09-svm-margin
+sys.path.insert(0, str(LESSON/'src/course'))
 from lab_utils import *
 from sklearn.svm import SVC
 train, validation = load_development()
